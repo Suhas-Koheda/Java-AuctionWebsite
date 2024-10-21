@@ -86,6 +86,11 @@ public class RoomController {
             room.getGamePlayers().removeIf(player -> player.getName().equals(playerName));
             roomRepository.save(room);
 
+            if(room.getGamePlayers().isEmpty()) {
+                roomRepository.delete(room);
+                System.out.println("Room deleted successfully");
+            }
+
             String message = playerName + " has disconnected from room " + roomId + ".";
             messagingTemplate.convertAndSend("/rooms/" + roomId, message);
         }

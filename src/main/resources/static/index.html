@@ -100,19 +100,20 @@
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
 
-            // Subscribe to messages for the room
+            // Create Room
             document.getElementById("createRoom").onclick = function() {
-                const roomId = document.getElementById("roomId").value;
-                subscribeToRoom(roomId);
+                currentRoomId = document.getElementById("roomId").value;
                 playerName = document.getElementById("playerName").value; // Get player name from input
-                createRoom(roomId,playerName);
+                subscribeToRoom(currentRoomId);
+                createRoom(currentRoomId, playerName);
             };
 
+            // Join Room
             document.getElementById("joinRoom").onclick = function() {
-                const roomId = document.getElementById("roomId").value;
+                currentRoomId = document.getElementById("roomId").value;
                 playerName = document.getElementById("playerName").value; // Get player name from input
-                subscribeToRoom(roomId);
-                joinRoom(roomId);
+                subscribeToRoom(currentRoomId);
+                joinRoom(currentRoomId, playerName);
             };
         });
     }
@@ -126,24 +127,26 @@
         });
     }
 
-    function createRoom(roomId) {
+    function createRoom(roomId, playerName) {
         stompClient.send("/app/createRoom", {}, roomId + "," + playerName);
     }
 
-    function joinRoom(roomId) {
+    function joinRoom(roomId, playerName) {
         stompClient.send("/app/joinRoom", {}, roomId + "," + playerName);
     }
 
-    window.onbeforeunload = function() {
-        disconnect(); // Call disconnect before closing the window
-    };
-
     function disconnect() {
-        if (playerName) {
-            const roomId = document.getElementById("roomId").value;
-            stompClient.send("/app/disconnect", {}, roomId + "," + playerName);
+        if (playerName && currentRoomId) {
+            stompClient.send("/app/disconnect", {}, currentRoomId + "," + playerName);
+            stompClient.disconnect();
         }
     }
+
+    // Handle disconnect when window or tab is closed
+    window.addEventListener('beforeunload', function (event) {
+        disconnect(); // Trigger disconnect event
+        event.returnValue = ''; // Required for some browsers to show confirmation dialog
+    });
 
     connect();
 </script>
