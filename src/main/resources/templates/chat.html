@@ -10,7 +10,8 @@
 <button onclick="sendMessage()">Send</button>
 
 <script>
-    const roomId = /*[[${roomId}]]*/ 'defaultRoom';
+    const roomId = "[[${roomId}]]";
+    console.log(roomId)
     const socket = new WebSocket('ws://localhost:8080/chat?roomId=' + roomId);
 
     socket.onmessage = function(event) {

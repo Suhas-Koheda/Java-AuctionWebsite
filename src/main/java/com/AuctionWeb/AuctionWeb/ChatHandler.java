@@ -52,7 +52,23 @@ public class ChatHandler extends TextWebSocketHandler {
     }
 
     private String getRoomId(WebSocketSession session) {
-        // Extract room ID from the session attributes or URL parameters
-        return session.getAttributes().getOrDefault("roomId", "defaultRoom").toString();
+        String uri = session.getUri().toString();
+        String roomId = null;
+
+        // Parse the URI to extract the roomId from the query parameters
+        if (uri != null && uri.contains("roomId=")) {
+            String[] params = uri.split("\\?");
+            if (params.length > 1) {
+                String[] queryParams = params[1].split("&");
+                for (String param : queryParams) {
+                    if (param.startsWith("roomId=")) {
+                        roomId = param.substring("roomId=".length());
+                        break;
+                    }
+                }
+            }
+        }
+
+        return (roomId != null) ? roomId : "defaultRoom";
     }
 }
