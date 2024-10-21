@@ -1,51 +1,93 @@
 package com.AuctionWeb.AuctionWeb.controller;
 
+import com.AuctionWeb.AuctionWeb.model.Player;
 import com.AuctionWeb.AuctionWeb.model.Room;
-import com.AuctionWeb.AuctionWeb.service.RoomService;
+import com.AuctionWeb.AuctionWeb.repository.RoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Controller;
 
-import java.util.List;
-
-@RestController
-@RequestMapping("/api/rooms")
+@Controller
 public class RoomController {
-    private final RoomService roomService;
 
     @Autowired
-    public RoomController(RoomService roomService) {
-        this.roomService = roomService;
-    }
+    private SimpMessagingTemplate messagingTemplate;
 
-    @PostMapping
-    public ResponseEntity<Room> createRoom(@RequestBody Room room) {
-        Room createdRoom = roomService.createRoom(room);
-        return ResponseEntity.ok(createdRoom);
-    }
+    @Autowired
+    private RoomRepository roomRepository;
 
-    @GetMapping
-    public ResponseEntity<List<Room>> getAllRooms() {
-        return ResponseEntity.ok(roomService.getAllRooms());
-    }
+    @MessageMapping("/createRoom")
+    public void createRoom(String data) {
+        String[] parts = data.split(",");
+        String roomId = parts[0];
+        String playerName = parts[1];
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Room> getRoomById(@PathVariable String id) {
-        Room room = roomService.getRoomById(id);
-        return room != null ? ResponseEntity.ok(room) : ResponseEntity.notFound().build();
-    }
+        Room room = new Room();
+        room.setRoomId(roomId);
+        roomRepository.save(room);
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Room> updateRoom(@PathVariable String id, @RequestBody Room room) {
-        Room updatedRoom = roomService.updateRoom(id, room);
-        return updatedRoom != null ? ResponseEntity.ok(updatedRoom) : ResponseEntity.notFound().build();
-    }
+        Player newPlayer = new Player();
+        newPlayer.setName(playerName);
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRoom(@PathVariable String id) {
-        if (roomService.deleteRoom(id)) {
-            return ResponseEntity.noContent().build();
+
+        if (room.getGamePlayers().size() < 25) { // Maximum 25 players
+            room.getGamePlayers().add(newPlayer);
+            roomRepository.save(room);
+
+            String message = "Room " + roomId + " created successfully!";
+            System.out.println(message);
+            messagingTemplate.convertAndSend("/rooms/" + roomId, message);
+
+             message = playerName + " joined room " + roomId;
+            messagingTemplate.convertAndSend("/rooms/" + roomId, message);
+
         }
-        return ResponseEntity.notFound().build();
+    }
+
+    @MessageMapping("/joinRoom")
+    public void joinRoom(String data) {
+        String[] parts = data.split(",");
+        String roomId = parts[0];
+        String playerName = parts[1];
+
+        Room room = roomRepository.findById(roomId).orElse(null);
+        if (room != null) {
+            Player newPlayer = new Player();
+            newPlayer.setName(playerName);
+
+
+            if (room.getGamePlayers().size() < 25) { // Maximum 25 players
+                room.getGamePlayers().add(newPlayer);
+                roomRepository.save(room);
+
+                String message = playerName + " joined room " + roomId;
+                messagingTemplate.convertAndSend("/rooms/" + roomId, message);
+            } else {
+                String message = "Room " + roomId + " is full!";
+                messagingTemplate.convertAndSend("/rooms/" + roomId, message);
+            }
+        } else {
+            String message = "Room " + roomId + " does not exist!";
+            messagingTemplate.convertAndSend("/rooms/" + roomId, message);
+        }
+    }
+
+
+    @MessageMapping("/disconnect")
+    public void disconnect(String data) {
+        String[] parts = data.split(",");
+        String roomId = parts[0];
+        String playerName = parts[1];
+
+        Room room = roomRepository.findById(roomId).orElse(null);
+        if (room != null) {
+            // Remove the player from the room
+            room.getGamePlayers().removeIf(player -> player.getName().equals(playerName));
+            roomRepository.save(room);
+
+            String message = playerName + " has disconnected from room " + roomId + ".";
+            messagingTemplate.convertAndSend("/rooms/" + roomId, message);
+        }
     }
 }

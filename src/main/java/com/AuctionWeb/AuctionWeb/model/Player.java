@@ -3,29 +3,24 @@ package com.AuctionWeb.AuctionWeb.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Document(collection = "players")
 public class Player {
     @Id
     private String id;
-
     private String name;
-    private int purse;
-    private List<String> playersBought;
+    private int purse = 100; // Automatically set to 100
+    private List<String> playersBought = new ArrayList<>(); // Initialize empty list
 
-    // Constructor
-    public Player() {
-    }
+    public Player() {}
 
-    public Player(String id, String name, int purse, List<String> playersBought) {
+    public Player(String id, String name) {
         this.id = id;
         this.name = name;
-        this.purse = purse;
-        this.playersBought = playersBought;
     }
 
-    // Getters and Setters
     public String getId() {
         return id;
     }
@@ -46,15 +41,15 @@ public class Player {
         return purse;
     }
 
-    public void setPurse(int purse) {
-        this.purse = purse;
-    }
-
     public List<String> getPlayersBought() {
         return playersBought;
     }
 
     public void setPlayersBought(List<String> playersBought) {
-        this.playersBought = playersBought;
+        if (playersBought.size() <= 25) {
+            this.playersBought = playersBought;
+        } else {
+            throw new IllegalArgumentException("Maximum of 25 players can be bought.");
+        }
     }
 }

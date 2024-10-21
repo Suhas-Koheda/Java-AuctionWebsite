@@ -13,7 +13,7 @@ RUN mvn clean package
 
 # Use a lightweight JRE for running the application
 FROM openjdk:21
-COPY --from=build /app/target/myapp.jar /usr/local/lib/myapp.jar
+COPY --from=build /app/target/AuctionWeb-0.0.1-SNAPSHOT.jar /usr/local/lib/myapp.jar
 
 # Set the entry point
 ENTRYPOINT ["java", "-jar", "/usr/local/lib/myapp.jar"]
